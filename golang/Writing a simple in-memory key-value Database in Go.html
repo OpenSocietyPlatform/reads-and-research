@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="theme-light" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Writing a simple in-memory key-value Database in Go</title>
+    <link rel="stylesheet" href="https://aly.arriqaaq.com/assets/built/screen.css?v=213a62434c">
+
+    <meta name="description" content="Building a simple in-memory key-value store in Go with Redis like commands." />
+    <link rel="canonical" href="https://aly.arriqaaq.com/building-a-database-in-go/" />
+    <meta name="referrer" content="no-referrer-when-downgrade" />
+    <link rel="amphtml" href="https://aly.arriqaaq.com/building-a-database-in-go/amp/" />
+    
+    <meta property="og:site_name" content="Farhan Aly" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Writing a simple in-memory key-value Database in Go" />
+    <meta property="og:description" content="Building a simple in-memory key-value store in Go with Redis like commands." />
+    <meta property="og:url" content="https://aly.arriqaaq.com/building-a-database-in-go/" />
+    <meta property="article:published_time" content="2022-03-07T14:19:18.000Z" />
+    <meta property="article:modified_time" content="2022-04-06T10:18:34.000Z" />
+    <meta property="article:tag" content="Blockchain" />
+    
+    <meta property="article:publisher" content="https://www.facebook.com/arriqaaq" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Writing a simple in-memory key-value Database in Go" />
+    <meta name="twitter:description" content="Building a simple in-memory key-value store in Go with Redis like commands." />
+    <meta name="twitter:url" content="https://aly.arriqaaq.com/building-a-database-in-go/" />
+    <meta name="twitter:image" content="https://aly.arriqaaq.com/content/images/2021/04/aly-2-3.png" />
+    <meta name="twitter:label1" content="Written by" />
+    <meta name="twitter:data1" content="Farhan Aly" />
+    <meta name="twitter:label2" content="Filed under" />
+    <meta name="twitter:data2" content="Blockchain" />
+    <meta name="twitter:site" content="@arriqaaq" />
+    
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "Farhan Aly",
+        "url": "https://aly.arriqaaq.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://aly.arriqaaq.com/favicon.ico",
+            "width": 48,
+            "height": 48
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Farhan Aly",
+        "url": "https://aly.arriqaaq.com/author/aly/",
+        "sameAs": []
+    },
+    "headline": "Writing a simple in-memory key-value Database in Go",
+    "url": "https://aly.arriqaaq.com/building-a-database-in-go/",
+    "datePublished": "2022-03-07T14:19:18.000Z",
+    "dateModified": "2022-04-06T10:18:34.000Z",
+    "keywords": "Blockchain",
+    "description": "Building a simple in-memory key-value store in Go with Redis like commands.",
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://aly.arriqaaq.com/"
+    }
+}
+    </script>
+
+    <meta name="generator" content="Ghost 5.9" />
+    <link rel="alternate" type="application/rss+xml" title="Farhan Aly" href="https://aly.arriqaaq.com/rss/" />
+    <script defer src="https://cdn.jsdelivr.net/npm/@tryghost/portal@~2.8/umd/portal.min.js" data-ghost="https://aly.arriqaaq.com/" data-key="6dfc865cdf8f04ea3ce33a580f" data-api="https://arriqaaq.ghost.io/ghost/api/content/" crossorigin="anonymous"></script><style id="gh-members-styles">.gh-post-upgrade-cta-content,
+.gh-post-upgrade-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    text-align: center;
+    width: 100%;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.gh-post-upgrade-cta-content {
+    border-radius: 8px;
+    padding: 40px 4vw;
+}
+
+.gh-post-upgrade-cta h2 {
+    color: #ffffff;
+    font-size: 28px;
+    letter-spacing: -0.2px;
+    margin: 0;
+    padding: 0;
+}
+
+.gh-post-upgrade-cta p {
+    margin: 20px 0 0;
+    padding: 0;
+}
+
+.gh-post-upgrade-cta small {
+    font-size: 16px;
+    letter-spacing: -0.2px;
+}
+
+.gh-post-upgrade-cta a {
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: none;
+    text-decoration: underline;
+}
+
+.gh-post-upgrade-cta a:hover {
+    color: #ffffff;
+    opacity: 0.8;
+    box-shadow: none;
+    text-decoration: underline;
+}
+
+.gh-post-upgrade-cta a.gh-btn {
+    display: block;
+    background: #ffffff;
+    text-decoration: none;
+    margin: 28px 0 0;
+    padding: 8px 18px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.gh-post-upgrade-cta a.gh-btn:hover {
+    opacity: 0.92;
+}</style><script async src="https://js.stripe.com/v3/"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tryghost/sodo-search@~1.1/umd/sodo-search.min.js" data-key="6dfc865cdf8f04ea3ce33a580f" data-styles="https://cdn.jsdelivr.net/npm/@tryghost/sodo-search@~1.1/umd/main.css" data-sodo-search="https://arriqaaq.ghost.io/" crossorigin="anonymous"></script>
+    <script defer src="/public/cards.min.js?v=213a62434c"></script>
+    <link rel="stylesheet" type="text/css" href="/public/cards.min.css?v=213a62434c">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-194579078-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-194579078-1');
+</script>
+
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.15.0/themes/prism.min.css"></link>
+<style>:root {--ghost-accent-color: #ed719e;}</style>
+</head>
+
+<body class='post-template tag-blockchain is-head-b--n--a has-serif-title has-serif-body'>
+<div class="site">
+
+    <header id="gh-head" class="gh-head gh-outer">
+    <div class="gh-head-inner gh-inner">
+
+        <div class="gh-head-brand">
+            <div class="gh-head-brand-wrapper">
+                <a class="gh-head-logo" href="https://aly.arriqaaq.com">
+                        Farhan Aly
+                </a>
+            </div>
+            <button class="gh-burger"></button>
+        </div>
+
+        <nav class="gh-head-menu">
+            <ul class="nav">
+    <li class="nav-home"><a href="https://aly.arriqaaq.com/">Home</a></li>
+    <li class="nav-about"><a href="https://aly.arriqaaq.com/about/">About</a></li>
+    <li class="nav-the-friday-gahwa-newsletter"><a href="https://aly.arriqaaq.com/tag/newsletter/">The Friday Gahwa Newsletter</a></li>
+</ul>
+
+        </nav>
+
+        <div class="gh-head-actions">
+            <button class="gh-search gh-icon-btn" data-ghost-search><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
+                <button class="button-text menu-item members-login" data-portal="signin">Login</button>
+                <button class="button-text menu-item menu-item-cta members-subscribe" data-portal="signup">Subscribe</button>
+        </div>
+
+    </div>
+    </header>
+
+
+    <div class="site-content">
+        
+<main class="site-main">
+
+        <article class="single post tag-blockchain no-image">
+
+    <header class="single-header gh-canvas">
+        <div class="single-meta">
+            <span class="single-meta-item single-meta-date">
+                <time datetime="2022-03-07">
+                    Mar 7, 2022
+                </time>
+            </span>
+                <span class="single-meta-item single-meta-length">
+                    5 min read
+                </span>
+                <span class="single-meta-item single-meta-tag">
+                    <a class="post-tag post-tag-blockchain" href="/tag/blockchain/">
+                        Blockchain
+                    </a>
+                </span>
+        </div>
+
+        <h1 class="single-title">Writing a simple in-memory key-value Database in Go</h1>
+
+            <div class="single-excerpt">
+                Building a simple in-memory key-value store in Go with Redis like commands.
+            </div>
+
+    </header>
+
+    <div class="single-content gh-content gh-canvas">
+        <p>بسملة</p><figure class="kg-card kg-image-card"><img src="https://aly.arriqaaq.com/content/images/2022/03/Screenshot-2022-03-10-at-9.39.41-AM-1.png" class="kg-image" alt loading="lazy" width="1342" height="1266" srcset="https://aly.arriqaaq.com/content/images/size/w600/2022/03/Screenshot-2022-03-10-at-9.39.41-AM-1.png 600w, https://aly.arriqaaq.com/content/images/size/w1000/2022/03/Screenshot-2022-03-10-at-9.39.41-AM-1.png 1000w, https://aly.arriqaaq.com/content/images/2022/03/Screenshot-2022-03-10-at-9.39.41-AM-1.png 1342w" sizes="(min-width: 720px) 720px"></figure><p></p><p>We've used databases and have worked on a variety of them, right from Postgres to Redis to Prometheus. I've spent a lot of time reading through the source code of some of these databases. And for those curious few like me who would be interested in learning how to build one, this book aims to document the process.</p><p>TLDR;</p><figure class="kg-card kg-bookmark-card"><a class="kg-bookmark-container" href="https://github.com/arriqaaq/flashdb"><div class="kg-bookmark-content"><div class="kg-bookmark-title">GitHub - arriqaaq/flashdb: FlashDB is an embeddable, in-memory key/value database in Go (with Redis like commands)</div><div class="kg-bookmark-description">FlashDB is an embeddable, in-memory key/value database in Go (with Redis like commands) - GitHub - arriqaaq/flashdb: FlashDB is an embeddable, in-memory key/value database in Go (with Redis like co...</div><div class="kg-bookmark-metadata"><img class="kg-bookmark-icon" src="https://github.com/fluidicon.png" alt=""><span class="kg-bookmark-author">GitHub</span><span class="kg-bookmark-publisher">arriqaaq</span></div></div><div class="kg-bookmark-thumbnail"><img src="https://opengraph.githubassets.com/68f001608d31079a47c533241410a544a97437e7fe2bbfdf5fa6370c6929cea0/arriqaaq/flashdb" alt=""></div></a></figure><hr><h1 id="in-memory-database">In-Memory Database</h1><p>In-memory databases are purpose-built databases that rely primarily on memory for data storage, in contrast to databases that store data on disk or SSDs. In-memory data stores are designed to enable minimal response times by eliminating the need to access disks. An in-memory database keeps all data in the main memory or RAM of a computer. A traditional database retrieves data from disk drives.Because all data is stored and managed exclusively in main memory, In-memory databases are more volatile than traditional databases because data is lost when there is a loss of power or the computer’s RAM crashes. In-memory databases can persist data on disks by storing each operation in a log or by taking snapshots.</p><hr><h1 id="expectations">Expectations</h1><p>The aim is to build a simple, fast, embeddable and persistent key/value database in Go that can</p><ul><li>Supports Redis like data structures : <code>string</code>,  <code>hash</code>, <code>set</code>, <code>zset</code>.</li><li>Has low latency and high throughput.</li><li>Support transaction, ACID semantics.</li><li><a href="https://github.com/arriqaaq/flashdb#append-only-file">Durable append-only file</a> format for persistence.</li><li>Option to evict old items with an <a href="https://github.com/arriqaaq/flashdb#data-expiration">expiration</a> TTL.</li></ul><hr><h1 id="getting-started">Getting Started</h1><p>The aim was to build a very simple KV (key/value) store so that it is easy to for everyone to understand and implement. There are quite a few embedded key/value stores available in Go. Here are a few to list:</p><ul><li><a href="https://github.com/dgraph-io/badger">BadgerDB</a> - BadgerDB is an embeddable, persistent, simple and fast key-value (KV) database written in pure Go. It's meant to be a performant alternative to non-Go-based key-value stores like RocksDB.</li><li><a href="https://github.com/boltdb/bolt">BoltDB</a> - BoltDB is a B+ tree based embedded key/value database for Go.</li><li><a href="https://github.com/tidwall/buntdb">BuntDB</a> - BuntDB is an embeddable, in-memory key/value database for Go with custom indexing and geospatial support </li><li><a href="https://github.com/hashicorp/go-memdb">go-memdb</a> - Golang in-memory database built on immutable radix trees </li><li><a href="https://github.com/xujiajun/nutsdb">nutsdb</a> - A disk-backed key-value store</li></ul><p>It is easier read than done. It is possible to understand the internals reading going through the huge codebases, but that becomes a starting hurdle for many. <a href="https://github.com/xujiajun/nutsdb">NutsDB</a> was one of the first ones I read 2-3 years back which was simple and easy to read.</p><p>Hence, FlashDB is made of composable libraries that are easy to understand. The idea is to bridge the learning for anyone new on how to build a simple ACID database.</p><hr><h1 id="architecture">Architecture</h1><figure class="kg-card kg-image-card"><img src="https://aly.arriqaaq.com/content/images/2022/03/architecture-2.png" class="kg-image" alt loading="lazy" width="1024" height="768" srcset="https://aly.arriqaaq.com/content/images/size/w600/2022/03/architecture-2.png 600w, https://aly.arriqaaq.com/content/images/size/w1000/2022/03/architecture-2.png 1000w, https://aly.arriqaaq.com/content/images/2022/03/architecture-2.png 1024w" sizes="(min-width: 720px) 720px"></figure><p>The architecture is simple. FlashDB supports a variety of Redis commands. Redis is not a <em><em>plain</em></em> key-value store, it is actually a <em><em>data structures server</em></em>, supporting different kinds of values. Under the hood, Redis implements various types using the following data structures:</p><h3 id="strings">Strings</h3><p>The Redis String type is the simplest type of value you can associate with a Redis key. Since Redis keys are strings, when we use the string type as a value too, we are mapping a string to another string. This is implemented using an <a href="https://github.com/arriqaaq/art">Adaptive Radix Tree</a> (ART) so that scans could be done easily.</p><ul><li><a href="https://github.com/arriqaaq/skiplist">String</a></li></ul><h3 id="hashes">Hashes</h3><p>While hashes are handy to represent <em><em>objects</em></em>, actually the number of fields you can put inside a hash has no practical limits (other than available memory), so you can use hashes in many different ways inside your application. This is implemented using a very simple HashMap data structure.</p><ul><li><a href="https://github.com/arriqaaq/hash">Hash</a></li></ul><h3 id="sets">Sets</h3><p>Redis Sets are unordered collections of strings. It's also possible to do a number of other operations against sets like testing if a given element already exists, performing the intersection, union or difference between multiple sets, and so forth. This is also implemented using a simple HashMap data structure.</p><ul><li><a href="https://github.com/arriqaaq/set">Set</a></li></ul><h3 id="sorted-sets">Sorted sets</h3><p>Sorted sets are a data type which is similar to a mix between a Set and a Hash. Like sets, sorted sets are composed of unique, non-repeating string elements, so in some sense a sorted set is a set as well.</p><p>However while elements inside sets are not ordered, every element in a sorted set is associated with a floating point value, called <em><em>the score</em></em> (this is why the type is also similar to a hash, since every element is mapped to a value).</p><p>This is implemented using a slightly modified skiplist than the one used for strings.</p><ul><li><a href="https://github.com/arriqaaq/zset">ZSet</a></li></ul><hr><h2 id="persistence">Persistence</h2><p>Though there are many persistence mechanisms, I chose a simple append-only log design because it is easier to implement and understand. <strong><strong>AOF</strong></strong> (Append Only File) logs every write operation received by the server, that will be played again at server startup, reconstructing the original dataset. Commands are logged using the same format as the API protocol itself, in an append-only fashion. FlashDB is able to handle multiple segments of the log in the background when it gets too big. This is implemented based on <a href="https://github.com/tidwall/wal">wal</a></p><ul><li><a href="https://github.com/arriqaaq/aol">Append Only Log</a></li></ul><hr><h2 id="conclusion">Conclusion</h2><p>So that is it. Using the five simple libraries above, <a href="https://github.com/arriqaaq/flashdb">FlashDB</a> was made. It has transaction and ACID support, which is easy to understand. But I hope this serves as a useful tutorial to anyone interested in learning how to make a database.</p><figure class="kg-card kg-bookmark-card"><a class="kg-bookmark-container" href="https://github.com/arriqaaq/flashdb"><div class="kg-bookmark-content"><div class="kg-bookmark-title">GitHub - arriqaaq/flashdb: FlashDB is an embeddable, in-memory key/value database in Go (with Redis like commands)</div><div class="kg-bookmark-description">FlashDB is an embeddable, in-memory key/value database in Go (with Redis like commands) - GitHub - arriqaaq/flashdb: FlashDB is an embeddable, in-memory key/value database in Go (with Redis like co...</div><div class="kg-bookmark-metadata"><img class="kg-bookmark-icon" src="https://github.com/fluidicon.png" alt=""><span class="kg-bookmark-author">GitHub</span><span class="kg-bookmark-publisher">arriqaaq</span></div></div><div class="kg-bookmark-thumbnail"><img src="https://opengraph.githubassets.com/aae2b67c1e7aca43feae09bb5602de2ec716896c086d8cea8d6fbbef5a9da71c/arriqaaq/flashdb" alt=""></div></a></figure><hr><h2 id="talks">Talks</h2><p>I recently spoke about this in the Golang meetup, here is the slide deck.</p><p><a href="https://www.canva.com/design/DAE8sGRyC2o/ZCuCaezQ6dYA0Oq24QxjUQ/view?utm_content=DAE8sGRyC2o&amp;utm_campaign=designshare&amp;utm_medium=link&amp;utm_source=publishsharelink">https://www.canva.com/design/DAE8sGRyC2o/ZCuCaezQ6dYA0Oq24QxjUQ/view?utm_content=DAE8sGRyC2o&amp;utm_campaign=designshare&amp;utm_medium=link&amp;utm_source=publishsharelink</a></p>
+    </div>
+
+    <div class="gh-canvas">
+    <footer class="single-footer">
+
+        <div class="single-footer-left">
+            <div class="navigation navigation-previous">
+                <a class="navigation-link" href="/turing-completenes-ethereum-bitcoin/" aria-label="Previous post">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" class="icon navigation-icon">
+    <path d="M26.667 14.667v2.667h-16L18 24.667l-1.893 1.893L5.547 16l10.56-10.56L18 7.333l-7.333 7.333h16z"></path>
+</svg>                </a>
+            </div>
+        </div>
+
+        <div class="single-footer-middle">
+            <div class="single-footer-top">
+                <h3 class="single-footer-title">Published by:</h3>
+                <div class="author-list">
+                    <div class="author-image-placeholder u-placeholder square">
+                        <a href="/author/aly/" title="Farhan Aly">
+                            <img class="author-image u-object-fit" src="" alt="Farhan Aly" loading="lazy">
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="single-footer-right">
+            <div class="navigation navigation-next">
+                <a class="navigation-link" href="/art-building-a-prefix-search-trie-in-go/" aria-label="Next post">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" class="icon navigation-icon">
+    <path d="M5.333 14.667v2.667h16L14 24.667l1.893 1.893L26.453 16 15.893 5.44 14 7.333l7.333 7.333h-16z"></path>
+</svg>                </a>
+            </div>
+        </div>
+
+    </footer>
+    </div>
+
+</article>        
+            <section class="related-wrapper gh-canvas">
+        <h3 class="related-title">You might also like...</h3>
+        <div class="related-feed">
+                <article class="feed public post no-image">
+
+    <div class="feed-calendar">
+        <div class="feed-calendar-month">
+            Mar
+        </div>
+        <div class="feed-calendar-day">
+            19
+        </div>
+    </div>
+
+    <h2 class="feed-title">ART: Building a Prefix Search Trie in Go</h2>
+
+    <div class="feed-right">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" class="icon icon-star">
+    <path d="M16 23.027L24.24 28l-2.187-9.373 7.28-6.307-9.587-.827-3.747-8.827-3.747 8.827-9.587.827 7.267 6.307L7.759 28l8.24-4.973z"></path>
+</svg>        <div class="feed-length">
+            8 min read
+        </div>
+    </div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" class="icon feed-icon">
+    <path d="M11.453 22.107L17.56 16l-6.107-6.12L13.333 8l8 8-8 8-1.88-1.893z"></path>
+</svg>
+    <a class="u-permalink" href="/art-building-a-prefix-search-trie-in-go/" aria-label="ART: Building a Prefix Search Trie in Go"></a>
+
+</article>                <article class="feed public post">
+
+    <div class="feed-calendar">
+        <div class="feed-calendar-month">
+            Dec
+        </div>
+        <div class="feed-calendar-day">
+            19
+        </div>
+    </div>
+
+    <h2 class="feed-title">Turing Completeness, Go, Ethereum and Bitcoin</h2>
+
+    <div class="feed-right">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" class="icon icon-star">
+    <path d="M16 23.027L24.24 28l-2.187-9.373 7.28-6.307-9.587-.827-3.747-8.827-3.747 8.827-9.587.827 7.267 6.307L7.759 28l8.24-4.973z"></path>
+</svg>        <div class="feed-length">
+            8 min read
+        </div>
+    </div>
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" class="icon feed-icon">
+    <path d="M11.453 22.107L17.56 16l-6.107-6.12L13.333 8l8 8-8 8-1.88-1.893z"></path>
+</svg>
+    <a class="u-permalink" href="/turing-completenes-ethereum-bitcoin/" aria-label="Turing Completeness, Go, Ethereum and Bitcoin"></a>
+
+</article>        </div>
+    </section>
+
+</main>
+    </div>
+
+    <footer class="gh-foot gh-outer">
+        <div class="gh-foot-inner gh-inner">
+            <div class="gh-copyright">
+                Farhan Aly © 2022
+            </div>
+            <nav class="gh-foot-menu">
+                <ul class="nav">
+    <li class="nav-data-privacy"><a href="https://aly.arriqaaq.com/privacy/">Data &amp; privacy</a></li>
+    <li class="nav-subscription-details"><a href="https://aly.arriqaaq.com/choose-your-subscription/">Subscription Details</a></li>
+</ul>
+
+            </nav>
+            <div class="gh-powered-by">
+                <a href="https://ghost.org/" target="_blank" rel="noopener">Powered by Ghost</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+    <!-- Background of PhotoSwipe.
+        It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+        <!-- Container that holds slides.
+          PhotoSwipe keeps only 3 of them in the DOM to save memory.
+          Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+            <div class="pswp__top-bar">
+                <!--  Controls are self-explanatory. Order can be changed. -->
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)"></button>
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)"></button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script
+    src="https://code.jquery.com/jquery-3.5.1.min.js"
+    integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+    crossorigin="anonymous">
+</script>
+<script src='https://aly.arriqaaq.com/assets/built/main.min.js?v=213a62434c'></script>
+
+<!-- Core -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.15.0/prism.min.js"></script>
+
+<!-- All individual language files -->
+<!-- Golang syntax highlighting -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.15.0/components/prism-go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-bash.min.js" integrity="sha512-/xr8BBHgclic5pEsdspPqQS8ne+X8QbYRK22c1WRDj8zERTBJDH+Ic/3o8vnrdz5yeGzlzMfp8k33tGgDaAh6g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+</body>
+</html>
